@@ -1,43 +1,290 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sheet Sandbox</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backend Sandbox</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--text:#1d2330;--mute:#6b7280;--line:#dfe3ea;--accent:#1f6f5c;--bad:#b3261e;--ok:#1b7f3b}
+  @media (prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1c2027;--text:#e8ebf0;--mute:#9aa3b2;--line:#2c323c;--accent:#4fb89c;--bad:#ff8a80;--ok:#6fd48c}}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--text)}
+  header{padding:14px 16px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
+  h1{font-size:17px;margin:0 0 8px}
+  nav{display:flex;gap:6px;flex-wrap:wrap}
+  nav button{border:1px solid var(--line);background:transparent;color:var(--text);padding:6px 12px;border-radius:999px;cursor:pointer;font:inherit}
+  nav button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  main{max-width:860px;margin:0 auto;padding:16px}
+  section{display:none}section.on{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+  .card h3{margin:0 0 4px;font-size:16px}
+  .mute{color:var(--mute);font-size:13px}
+  label{display:block;font-size:13px;color:var(--mute);margin:10px 0 3px}
+  input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+  textarea{min-height:80px}
+  button.go{margin-top:14px;background:var(--accent);color:#fff;border:0;padding:10px 18px;border-radius:8px;font:inherit;cursor:pointer}
+  button.go:disabled{opacity:.5}
+  .row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:140px}
+  pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;font-size:12px;max-height:320px}
+  .pass{color:var(--ok)}.fail{color:var(--bad)}
+  .tag{display:inline-block;font-size:12px;padding:1px 8px;border:1px solid var(--line);border-radius:999px;margin-right:4px;color:var(--mute)}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+  .hide{display:none}
+</style>
 </head>
 <body>
-  <h2>Data from Sheet</h2>
-  <pre id="output">Loading...</pre>
+<header>
+  <h1>Backend Sandbox <span class="mute" id="origin"></span></h1>
+  <nav id="nav"></nav>
+</header>
+<main>
 
-  <h2>Test Form</h2>
-  <form id="f">
-    <input name="name" placeholder="Name" required>
-    <input name="email" type="email" placeholder="Email" required>
-    <button>Submit</button>
-  </form>
-  <p id="status"></p>
+<section id="s-setup" class="on">
+  <div class="card">
+    <h3>1. Connect</h3>
+    <p class="mute">Paste your Apps Script <code>/exec</code> URL. It is saved only in this browser.</p>
+    <input id="api" placeholder="https://script.google.com/macros/s/XXXX/exec">
+    <button class="go" id="save">Save and run checks</button>
+  </div>
+  <div class="card">
+    <h3>2. Origin to allow</h3>
+    <p class="mute">Set the Script property <code>ALLOWED_ORIGIN</code> to exactly this value (no path, no trailing slash). Comma-separate it with your real domain later.</p>
+    <pre id="originBox"></pre>
+  </div>
+  <div class="card">
+    <h3>3. Read checks</h3>
+    <div id="checks" class="mute">Not run yet.</div>
+  </div>
+</section>
 
-  <script>
-    const URL = "https://script.google.com/macros/s/AKfycbwf7YfbGCvoUiN_FNVWC5FTB_Hgpk2qwHRf3fef1fA01owE3Vg4NuQ6Ywx40QsiIbe9/exec";
+<section id="s-courses">
+  <div class="row">
+    <div><label>Audience</label><select id="fAud"><option value="">All</option></select></div>
+    <div><label>Subject</label><select id="fSub"><option value="">All</option></select></div>
+    <div><label>Format</label><select id="fFmt"><option value="">All</option></select></div>
+  </div>
+  <button class="go" id="loadCourses">Load courses</button>
+  <div id="courses" style="margin-top:14px"></div>
+</section>
 
-    // Display: needs doGet() in your script returning JSON
-    fetch(URL)
-      .then(r => r.json())
-      .then(d => output.textContent = JSON.stringify(d, null, 2))
-      .catch(e => output.textContent = "Error: " + e);
+<section id="s-faculty"><button class="go" id="loadFaculty" style="margin:0 0 14px">Load faculty</button><div id="faculty"></div></section>
 
-    // Form: needs doPost(e) in your script
-    f.addEventListener("submit", async e => {
-      e.preventDefault();
-      status.textContent = "Sending...";
-      try {
-        await fetch(URL, { method: "POST", body: new FormData(f) });
-        status.textContent = "Sent! Check your sheet.";
-        f.reset();
-      } catch (err) {
-        status.textContent = "Error: " + err;
-      }
-    });
-  </script>
+<section id="s-forms">
+  <div class="card">
+    <label>Form</label>
+    <select id="formPick">
+      <option value="register">Register</option>
+      <option value="enquiry">Enquiry</option>
+      <option value="message">Message</option>
+    </select>
+    <div class="row">
+      <div><label>Referral code (optional)</label><input id="ref" placeholder="REP-0001 or REP-0001-CRS-0003"></div>
+      <div style="flex:0 0 auto;align-self:end"><button class="go" id="checkRef" style="margin:0">Check code</button></div>
+    </div>
+    <div id="refOut" class="mute"></div>
+  </div>
+  <div class="card">
+    <p class="mute">Submissions go to the real sheet. Use obvious test names, then delete rows or use <b>Clear EX- example rows</b>. Telegram alerts will fire.</p>
+    <form id="theForm" onsubmit="return false"></form>
+    <div id="formOut"></div>
+  </div>
+</section>
+
+<section id="s-raw">
+  <div class="card">
+    <h3>Raw GET</h3>
+    <input id="rawQ" value="action=ping">
+    <button class="go" id="rawGo">Send</button>
+    <pre id="rawOut">—</pre>
+  </div>
+</section>
+
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let API = localStorage.getItem('sandbox_api') || 'https://script.google.com/macros/s/AKfycbxaTEOaiAJCvqQEKAF1m_bXIqqh9yLAUn9qQORlt8SGBR0aCrvW1hHwHImdUqQQskMy/exec';
+let OPTS = null, COURSES = [];
+
+$('#origin').textContent = location.origin;
+$('#originBox').textContent = location.origin;
+$('#api').value = API;
+
+/* ---- tabs ---- */
+const tabs = [['setup','Setup'],['courses','Courses'],['faculty','Faculty'],['forms','Forms'],['raw','Raw API']];
+$('#nav').innerHTML = tabs.map(([k,l]) => `<button data-t="${k}">${l}</button>`).join('');
+function show(k){
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === 's-'+k));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === k));
+  if(k==='forms') renderForm();
+}
+$('#nav').onclick = e => e.target.dataset.t && show(e.target.dataset.t);
+show('setup');
+
+/* ---- API ---- */
+async function get(params){
+  if(!API) throw new Error('Set the API URL on the Setup tab first.');
+  const r = await fetch(API + '?' + new URLSearchParams(params));
+  const j = await r.json();
+  if(!j.ok) throw Object.assign(new Error(j.error?.message || 'Error'), {code:j.error?.code, field:j.error?.field});
+  return j.data;
+}
+async function post(body){
+  const r = await fetch(API, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body)});
+  return r.json();
+}
+
+/* ---- setup checks ---- */
+async function runChecks(){
+  const out = $('#checks'); out.innerHTML = 'Running…';
+  const tests = [
+    ['ping', () => get({action:'ping'}), d => d.time],
+    ['getFormOptions', () => get({action:'getFormOptions'}), d => Object.keys(d.lists).length + ' lists'],
+    ['getSubjects', () => get({action:'getSubjects'}), d => d.length + ' subjects'],
+    ['getCourses', () => get({action:'getCourses'}), d => d.length + ' courses'],
+    ['getGroups', () => get({action:'getGroups'}), d => d.length + ' groups'],
+    ['getHomepageCards', () => get({action:'getHomepageCards'}), d => d.length + ' cards'],
+    ['getFaculty', () => get({action:'getFaculty'}), d => d.length + ' educators'],
+  ];
+  let html = '';
+  for(const [name, fn, fmt] of tests){
+    try{ const d = await fn(); html += `<div class="pass">✔ ${name} <span class="mute">${esc(fmt(d))}</span></div>`; if(name==='getFormOptions') OPTS = d; }
+    catch(e){ html += `<div class="fail">✘ ${name} <span class="mute">${esc(e.message)}</span></div>`; }
+    out.innerHTML = html;
+  }
+  fillFilters();
+}
+$('#save').onclick = () => { API = $('#api').value.trim(); localStorage.setItem('sandbox_api', API); runChecks(); };
+
+async function fillFilters(){
+  try{
+    if(!OPTS) OPTS = await get({action:'getFormOptions'});
+    const subs = await get({action:'getSubjects'});
+    const fill = (sel, arr) => { const el=$(sel); el.length=1; arr.forEach(v => el.add(new Option(v,v))); };
+    fill('#fAud', OPTS.lists.audiences||[]); fill('#fFmt', OPTS.lists.formats||[]); fill('#fSub', subs.map(s=>s.name));
+  }catch(e){}
+}
+
+/* ---- courses ---- */
+$('#loadCourses').onclick = async () => {
+  const box = $('#courses'); box.innerHTML = 'Loading…';
+  try{
+    const p = {action:'getCourses'};
+    if($('#fAud').value) p.audience=$('#fAud').value;
+    if($('#fSub').value) p.subject=$('#fSub').value;
+    if($('#fFmt').value) p.format=$('#fFmt').value;
+    COURSES = await get(p);
+    box.innerHTML = COURSES.length ? COURSES.map(c => `
+      <div class="card">
+        <h3>${esc(c.title_english)} <span class="mute">${esc(c.title_arabic)}</span></h3>
+        <div><span class="tag">${esc(c.course_id)}</span><span class="tag">${esc(c.audience)}</span><span class="tag">${esc(c.format)}</span><span class="tag">${esc(c.subject)}</span></div>
+        <p>${esc(c.short_description)}</p>
+        <div class="mute">${esc(c.total_lessons)} lessons · ${esc(c.course_duration)} ${esc(c.duration_unit)} · ${esc(c.price?.type)} ${c.price?.value ?? ''} ${c.price?.currency||''} · ${c.open_group_count} open group(s)</div>
+      </div>`).join('') : '<p class="mute">No courses returned.</p>';
+  }catch(e){ box.innerHTML = `<p class="fail">${esc(e.message)}</p>`; }
+};
+
+/* ---- faculty ---- */
+$('#loadFaculty').onclick = async () => {
+  const box = $('#faculty'); box.innerHTML = 'Loading…';
+  try{
+    const f = await get({action:'getFaculty'});
+    box.innerHTML = f.length ? f.map(x => `
+      <div class="card"><h3>${esc(x.name_with_title)}</h3>
+      <div class="mute">${esc(x.role)} · ${esc(x.specialisation)}</div>
+      <ul>${(x.qualifications_list||[]).map(q=>`<li>${esc(q)}</li>`).join('')}</ul></div>`).join('') : '<p class="mute">No educators returned.</p>';
+  }catch(e){ box.innerHTML = `<p class="fail">${esc(e.message)}</p>`; }
+};
+
+/* ---- forms ---- */
+const L = k => (OPTS?.lists?.[k]) || [];
+const FORMS = {
+  register: () => [
+    {n:'registering_for', t:'select', o:L('registering_for'), r:1},
+    {n:'student_name', r:1}, {n:'guardian_name', l:'guardian_name (required if Child)'},
+    {n:'gender', t:'select', o:L('genders'), r:1}, {n:'age', t:'number', r:1},
+    {n:'country_and_city', r:1}, {n:'email', t:'email', r:1}, {n:'whatsapp', r:1},
+    {n:'course_id', t:'course', r:1}, {n:'group_id', t:'group'},
+    {n:'prerequisites_confirmed', t:'select', o:['','Yes']},
+    {n:'seminary_name'}, {n:'seminary_location'},
+    {n:'current_status', t:'select', o:L('current_statuses')},
+    {n:'syllabus_books_quote', t:'select', o:['','Yes','No']},
+    {n:'terms_agreed', t:'select', o:['','Yes'], r:1}
+  ],
+  enquiry: () => [
+    {n:'audience', t:'select', o:L('audiences'), r:1},
+    {n:'enquiry_for', t:'select', o:L('enquiry_for'), r:1},
+    {n:'student_name', r:1}, {n:'country_and_city', r:1}, {n:'email', t:'email', r:1},
+    {n:'preferred_platform', t:'select', o:L('preferred_platforms'), r:1},
+    {n:'whatsapp'}, {n:'telegram'}, {n:'course_id', t:'course'},
+    {n:'seminary_name'}, {n:'seminary_location'},
+    {n:'current_status', t:'select', o:L('current_statuses')},
+    {n:'goals', t:'textarea'},
+    {n:'terms_agreed', t:'select', o:['','Yes'], r:1}
+  ],
+  message: () => [
+    {n:'name', r:1}, {n:'email', t:'email', r:1},
+    {n:'topic', t:'select', o:L('message_topics'), r:1},
+    {n:'message', t:'textarea', r:1}
+  ]
+};
+let loadedAt = Date.now();
+
+async function renderForm(){
+  if(API && !OPTS){ try{ OPTS = await get({action:'getFormOptions'}); }catch(e){} }
+  if(API && !COURSES.length){ try{ COURSES = await get({action:'getCourses'}); }catch(e){} }
+  const form = $('#theForm'), type = $('#formPick').value;
+  form.innerHTML = FORMS[type]().map(f => {
+    const lab = `<label>${esc(f.l || f.n)}${f.r ? ' *' : ''}</label>`;
+    if(f.t==='select') return lab + `<select name="${f.n}">${(f.o.includes('')?f.o:['',...f.o]).map(v=>`<option>${esc(v)}</option>`).join('')}</select>`;
+    if(f.t==='course') return lab + `<select name="${f.n}" data-course><option value=""></option>${COURSES.map(c=>`<option value="${esc(c.course_id)}">${esc(c.course_id)} · ${esc(c.title_english)}</option>`).join('')}</select>`;
+    if(f.t==='group') return lab + `<select name="${f.n}" data-group><option value=""></option></select>`;
+    if(f.t==='textarea') return lab + `<textarea name="${f.n}"></textarea>`;
+    return lab + `<input name="${f.n}" type="${f.t||'text'}">`;
+  }).join('') + `<input class="hp" name="website" tabindex="-1" autocomplete="off"><button class="go" id="submitBtn">Submit test</button>`;
+  loadedAt = Date.now();
+  $('#formOut').innerHTML = '';
+  const cs = form.querySelector('[data-course]'), gs = form.querySelector('[data-group]');
+  if(cs && gs) cs.onchange = async () => {
+    gs.length = 1;
+    if(!cs.value) return;
+    try{ const c = await get({action:'getCourse', id:cs.value}); (c.groups||[]).forEach(g => gs.add(new Option(`${g.group_id} · ${g.group_label} (${g.seats_left} left)`, g.group_id))); }catch(e){}
+  };
+  $('#submitBtn').onclick = submitForm;
+}
+$('#formPick').onchange = renderForm;
+
+async function submitForm(){
+  const form = $('#theForm'), out = $('#formOut'), btn = $('#submitBtn');
+  const body = {form:$('#formPick').value, origin:location.origin, loaded_at:loadedAt, ref:$('#ref').value.trim()};
+  new FormData(form).forEach((v,k) => { if(v!=='') body[k]=v; });
+  body.website = form.querySelector('[name=website]').value;
+  if(body.age) body.age = Number(body.age);
+  const wait = 3200 - (Date.now() - loadedAt);
+  btn.disabled = true;
+  if(wait > 0){ out.innerHTML = `<p class="mute">Waiting ${Math.ceil(wait/1000)}s (the backend rejects forms submitted under 3s)…</p>`; await new Promise(r=>setTimeout(r,wait)); }
+  try{
+    const j = await post(body);
+    out.innerHTML = `<p class="${j.ok?'pass':'fail'}">${j.ok?'✔ Success':'✘ '+esc(j.error?.code)+': '+esc(j.error?.message)+(j.error?.field?' (field: '+esc(j.error.field)+')':'')}</p><pre>${esc(JSON.stringify(j,null,2))}</pre>`;
+  }catch(e){
+    out.innerHTML = `<p class="fail">Request failed: ${esc(e.message)}</p><p class="mute">Usually means the deployment is not set to "Anyone", the URL is wrong, or the deployment needs a new version.</p>`;
+  }
+  btn.disabled = false;
+}
+
+$('#checkRef').onclick = async () => {
+  const v = $('#ref').value.trim(); if(!v) return;
+  try{ $('#refOut').textContent = JSON.stringify(await get({action:'resolveRef', ref:v})); }
+  catch(e){ $('#refOut').textContent = e.message; }
+};
+
+/* ---- raw ---- */
+$('#rawGo').onclick = async () => {
+  try{ const r = await fetch(API + '?' + $('#rawQ').value); $('#rawOut').textContent = JSON.stringify(await r.json(), null, 2); }
+  catch(e){ $('#rawOut').textContent = e.message; }
+};
+
+if(API) runChecks();
+</script>
 </body>
 </html>
