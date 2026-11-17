@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet Sandbox</title>
+</head>
+<body>
+  <h2>Data from Sheet</h2>
+  <pre id="output">Loading...</pre>
+
+  <h2>Test Form</h2>
+  <form id="f">
+    <input name="name" placeholder="Name" required>
+    <input name="email" type="email" placeholder="Email" required>
+    <button>Submit</button>
+  </form>
+  <p id="status"></p>
+
+  <script>
+    const URL = "YOUR_EXEC_URL";
+
+    // Display: needs doGet() in your script returning JSON
+    fetch(URL)
+      .then(r => r.json())
+      .then(d => output.textContent = JSON.stringify(d, null, 2))
+      .catch(e => output.textContent = "Error: " + e);
+
+    // Form: needs doPost(e) in your script
+    f.addEventListener("submit", async e => {
+      e.preventDefault();
+      status.textContent = "Sending...";
+      try {
+        await fetch(URL, { method: "POST", body: new FormData(f) });
+        status.textContent = "Sent! Check your sheet.";
+        f.reset();
+      } catch (err) {
+        status.textContent = "Error: " + err;
+      }
+    });
+  </script>
+</body>
+</html>
