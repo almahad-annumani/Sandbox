@@ -43,7 +43,7 @@
   <div class="card">
     <h3>1. Connect</h3>
     <p class="mute">Paste your Apps Script <code>/exec</code> URL. It is saved only in this browser.</p>
-    <input id="api" placeholder="https://script.google.com/macros/s/XXXX/exec">
+    <input id="api" placeholder="https://script.google.com/macros/s/AKfycbyLzXQw-6KeY7f2FfDzbfNMikHaOvd9AJQU04fNfGgZksQQTcUTwEBHbr-EZ4FM0Mrc/exec">
     <button class="go" id="save">Save and run checks</button>
   </div>
   <div class="card">
@@ -103,7 +103,7 @@
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let API = localStorage.getItem('sandbox_api') || 'https://script.google.com/macros/s/AKfycbxaTEOaiAJCvqQEKAF1m_bXIqqh9yLAUn9qQORlt8SGBR0aCrvW1hHwHImdUqQQskMy/exec';
+let API = localStorage.getItem('sandbox_api') || 'https://script.google.com/macros/s/AKfycbyLzXQw-6KeY7f2FfDzbfNMikHaOvd9AJQU04fNfGgZksQQTcUTwEBHbr-EZ4FM0Mrc/exec';
 let OPTS = null, COURSES = [];
 
 $('#origin').textContent = location.origin;
